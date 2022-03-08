@@ -189,7 +189,7 @@ class SensorFusionSelfSupervised(SensorFusion):
     """
 
     def __init__(
-        self, device, z_dim=128, action_dim=4, encoder=False, deterministic=False
+        self, device, z_dim=128, action_dim=4, encoder=False, deterministic=False,prob_dropout=0.25
     ):
 
         super().__init__(device, z_dim, action_dim, encoder, deterministic)
@@ -214,7 +214,7 @@ class SensorFusionSelfSupervised(SensorFusion):
         # -----------------------
         # contact decoder
         # -----------------------
-        self.contact_fc = nn.Sequential(nn.Linear(self.z_dim, 1))
+        self.contact_fc = nn.Sequential(nn.Dropout(prob_dropout),nn.Linear(self.z_dim, 1))
 
         # -----------------------
         # weight initialization

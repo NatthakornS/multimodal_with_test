@@ -50,6 +50,7 @@ class selfsupervised:
             deterministic=configs["deterministic"],
             z_dim=configs["zdim"],
             action_dim=configs["action_dim"],
+            prob_dropout=configs["prob_dropout"]
         ).to(self.device)
 
         self.optimizer = optim.Adam(
