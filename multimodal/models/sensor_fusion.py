@@ -209,12 +209,12 @@ class SensorFusionSelfSupervised(SensorFusion):
         # -----------------------
         # pairing decoder
         # -----------------------
-        self.pair_fc = nn.Sequential(nn.Linear(self.z_dim, 1))
+        self.pair_fc = nn.Sequential(nn.Dropout(prob_dropout),nn.Linear(self.z_dim, 1))
 
         # -----------------------
         # contact decoder
         # -----------------------
-        self.contact_fc = nn.Sequential(nn.Dropout(prob_dropout),nn.Linear(self.z_dim, 1))
+        self.contact_fc = nn.Sequential(nn.Linear(self.z_dim, 1))
 
         # -----------------------
         # weight initialization
