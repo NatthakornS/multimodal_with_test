@@ -32,7 +32,7 @@ dataset_params:
   force_name: "force"
   action_dim: 4
 
-load: ''
+load: 'logging/_/models/weights_itr_49.ckpt'
 logging_folder: logging/
 
 

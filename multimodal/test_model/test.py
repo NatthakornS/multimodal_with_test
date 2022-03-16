@@ -105,7 +105,7 @@ class selfsupervised:
 
         self._init_dataloaders_test()
 
-    def test(self, i_epoch):
+    def tests(self, i_epoch):
         self.logger.print(
             "test result"
         )
@@ -113,15 +113,15 @@ class selfsupervised:
         self.test_contact_accuracy = 0.0
         self.test_paired_accuracy = 0.0
 
-        for i_iter, sample_batched in enumerate(self.dataloaders["val"]):
-            self.model.eval()
+        for i_iter, sample_batched in enumerate(self.dataloaders["test"]):
+            self.model.test()
 
-            loss_val, mm_feat_val, results_val, image_packet_val = self.loss_calc(
+            loss_test, mm_feat_test, results_test, image_packet_test = self.loss_calc(
                 sample_batched
             )
 
             flow_loss, contact_loss, is_paired_loss, contact_accuracy, is_paired_accuracy, ee_delta_loss, kl = (
-                results_val
+                results_test
             )
 
             self.test_contact_accuracy += contact_accuracy.item() / self.val_len_data
@@ -129,32 +129,32 @@ class selfsupervised:
 
             if i_iter == 0:
                 self._record_image(
-                    image_packet_val, self.global_cnt["val"], string="val/"
+                    image_packet_test, self.global_cnt["test"], string="test/"
                 )
 
-                self.logger.tb.add_scalar("test/loss/optical_flow", flow_loss.item(), self.global_cnt["val"])
-                self.logger.tb.add_scalar("test/loss/contact", contact_loss.item(), self.global_cnt["val"])
-                self.logger.tb.add_scalar("test/loss/is_paired", is_paired_loss.item(), self.global_cnt["val"])
-                self.logger.tb.add_scalar("test/loss/kl", kl.item(), self.global_cnt["val"])
-                self.logger.tb.add_scalar("test/loss/total_loss", loss_val.item(), self.global_cnt["val"])
-                self.logger.tb.add_scalar("test/loss/ee_delta", ee_delta_loss, self.global_cnt["val"])
-                self.global_cnt["val"] += 1
+                self.logger.tb.add_scalar("test/loss/optical_flow", flow_loss.item(), self.global_cnt["test"])
+                self.logger.tb.add_scalar("test/loss/contact", contact_loss.item(), self.global_cnt["test"])
+                self.logger.tb.add_scalar("test/loss/is_paired", is_paired_loss.item(), self.global_cnt["test"])
+                self.logger.tb.add_scalar("test/loss/kl", kl.item(), self.global_cnt["test"])
+                self.logger.tb.add_scalar("test/loss/total_loss", loss_test.item(), self.global_cnt["test"])
+                self.logger.tb.add_scalar("test/loss/ee_delta", ee_delta_loss, self.global_cnt["test"])
+                self.global_cnt["test"] += 1
 
         # ---------------------------
         # Record Epoch Level Variables
         # ---------------------------
         self.logger.tb.add_scalar(
-            "test/accuracy/contact", self.test_contact_accuracy, self.global_cnt["val"]
+            "test/accuracy/contact", self.test_contact_accuracy, self.global_cnt["test"]
         )
         self.logger.tb.add_scalar(
-            "test/accuracy/is_paired", self.test_paired_accuracy, self.global_cnt["val"]
+            "test/accuracy/is_paired", self.test_paired_accuracy, self.global_cnt["test"]
         )
 
     def load_model(self, path):
         self.logger.print("Loading model from {}...".format(path))
         ckpt = torch.load(path)
         self.model.load_state_dict(ckpt)
-        self.model.eval()
+        self.model.test()
     def loss_calc(self, sampled_batched):
 
         # input data
@@ -316,7 +316,7 @@ class selfsupervised:
         
         self.logger.print("Initial finished")
 
-        val_filename_list1, _ = augment_val(
+        test_filename_list1, _ = augment_val(
             test_filename_list, _
         )
 
@@ -326,12 +326,7 @@ class selfsupervised:
         self.samplers = {}
         self.datasets = {}
 
-        self.samplers["val"] = SubsetRandomSampler(
-            range(len(val_filename_list1) * (self.configs["ep_length"] - 1))
-        )
-        self.samplers["train"] = SubsetRandomSampler(
-            range(len(filename_list1) * (self.configs["ep_length"] - 1))
-        )
+
 
         self.logger.print("Sampler finished")
 
@@ -358,11 +353,111 @@ class selfsupervised:
             self.datasets["test"],
             batch_size=self.configs["batch_size"],
             num_workers=self.configs["num_workers"],
-            sampler=self.samplers["test"],
             pin_memory=True,
             drop_last=True,
         )
 
+        self.test_len_data = len(self.dataloaders["test"])
+
+        self.logger.print("Finished setting up date")
+
+
+    def _init_dataloaders_test2(self):
+
+        filename_list = []
+        for file in os.listdir(self.configs["dataset"]):
+            if file.endswith(".h5"):
+                filename_list.append(self.configs["dataset"] + file)
+
+        self.logger.print(
+            "Number of files in multifile dataset = {}".format(len(filename_list))
+        )
+
+        test_filename_list = []
+
+        test_index = np.random.randint(
+            0, len(filename_list), int(len(filename_list) * self.configs["val_ratio"])
+        )
+
+        for index in test_index:
+            test_filename_list.append(filename_list[index])
+
+        while test_index.size > 0:
+            filename_list.pop(test_index[0])
+            test_index = np.where(test_index > test_index[0], test_index - 1, test_index)
+            test_index = test_index[1:]
+
+        self.logger.print("Initial finished")
+
+        test_filename_list1, filename_list1 = augment_val(
+            test_filename_list, filename_list
+        )
+
+        self.logger.print("Listing finished")
+
+        self.dataloaders = {}
+        self.samplers = {}
+        self.datasets = {}
+
+        self.samplers["test"] = SubsetRandomSampler(
+            range(len(test_filename_list1) * (self.configs["ep_length"] - 1))
+        )
+        self.samplers["train"] = SubsetRandomSampler(
+            range(len(filename_list1) * (self.configs["ep_length"] - 1))
+        )
+
+        self.logger.print("Sampler finished")
+
+        self.datasets["train"] = MultimodalManipulationDataset(
+            filename_list1,
+            transform=transforms.Compose(
+                [
+                    ProcessForce(32, "force", tanh=True),
+                    ProcessForce(32, "unpaired_force", tanh=True),
+                    ToTensor(device=self.device),
+                ]
+            ),
+            episode_length=self.configs["ep_length"],
+            training_type=self.configs["training_type"],
+            action_dim=self.configs["action_dim"],
+
+        )
+
+        self.datasets["test"] = MultimodalManipulationDataset(
+            test_filename_list1,
+            transform=transforms.Compose(
+                [
+                    ProcessForce(32, "force", tanh=True),
+                    ProcessForce(32, "unpaired_force", tanh=True),
+                    ToTensor(device=self.device),
+                ]
+            ),
+            episode_length=self.configs["ep_length"],
+            training_type=self.configs["training_type"],
+            action_dim=self.configs["action_dim"],
+
+        )
+
+        self.logger.print("Dataset finished")
+
+        self.dataloaders["test"] = DataLoader(
+            self.datasets["test"],
+            batch_size=self.configs["batch_size"],
+            num_workers=self.configs["num_workers"],
+            sampler=self.samplers["vtest"],
+            pin_memory=True,
+            drop_last=True,
+        )
+        self.dataloaders["train"] = DataLoader(
+            self.datasets["train"],
+            batch_size=self.configs["batch_size"],
+            num_workers=self.configs["num_workers"],
+            sampler=self.samplers["train"],
+            pin_memory=True,
+            drop_last=True,
+        )
+
+        self.len_data = len(self.dataloaders["train"])
         self.test_len_data = len(self.dataloaders["test"])
 
         self.logger.print("Finished setting up date")
