@@ -32,12 +32,12 @@ dataset_params:
   force_name: "force"
   action_dim: 4
 
-load: 'logging/_/models/weights_itr_49.ckpt'
+load: 'logging/202201152104_/models/weights_itr_49.ckpt'
 logging_folder: logging/
 
 
 # path to dataset hdf5 file (load test data)'
-dataset: "dataset/triangle_real_data/"
+dataset: "dataset/triangle_real_data/test/"
 
 val_ratio: 1
 cuda: True

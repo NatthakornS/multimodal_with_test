@@ -95,7 +95,7 @@ class selfsupervised:
         self.alpha_force = configs["force"]
 
         # Global Counts For Logging
-        self.global_cnt = {"train": 0, "val": 0}
+        self.global_cnt = {"train": 0, "test": 0}
 
         # ------------------------
         # Handles Initialization
@@ -103,9 +103,9 @@ class selfsupervised:
         if configs["load"]:
             self.load_model(configs["load"])
 
-        self._init_dataloaders_test()
+        self._init_dataloaders_test2()
 
-    def tests(self, i_epoch):
+    def tests(self):
         self.logger.print(
             "test result"
         )
@@ -146,15 +146,17 @@ class selfsupervised:
         self.logger.tb.add_scalar(
             "test/accuracy/contact", self.test_contact_accuracy, self.global_cnt["test"]
         )
+        print(self.test_contact_accuracy)
         self.logger.tb.add_scalar(
             "test/accuracy/is_paired", self.test_paired_accuracy, self.global_cnt["test"]
         )
+        print(self.test_paired_accuracy)
 
     def load_model(self, path):
         self.logger.print("Loading model from {}...".format(path))
         ckpt = torch.load(path)
         self.model.load_state_dict(ckpt)
-        self.model.test()
+        self.model.eval()
     def loss_calc(self, sampled_batched):
 
         # input data
@@ -444,7 +446,7 @@ class selfsupervised:
             self.datasets["test"],
             batch_size=self.configs["batch_size"],
             num_workers=self.configs["num_workers"],
-            sampler=self.samplers["vtest"],
+            sampler=self.samplers["test"],
             pin_memory=True,
             drop_last=True,
         )

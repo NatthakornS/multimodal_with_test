@@ -3,7 +3,7 @@ import argparse
 import yaml
 
 from logger import Logger
-from trainers.selfsupervised import selfsupervised
+from test_model.test import selfsupervised
 
 if __name__ == "__main__":
 
@@ -32,6 +32,6 @@ if __name__ == "__main__":
     logger = Logger(configs)
 
     # Initialize the trainer
-    trainer = selfsupervised(configs, logger)
+    test = selfsupervised(configs, logger)
 
-    trainer.train()
+    test.tests()
