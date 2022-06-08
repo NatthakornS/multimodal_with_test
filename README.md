@@ -1,9 +1,14 @@
 # Multimodal Representation 
 
+This code is use for test the test dataset so you should have the model that had been trained before.
 Code for Making Sense of Vision and Touch. 
 https://sites.google.com/view/visionandtouch
 
 Code written by: Matthew Tan, Michelle Lee, Peter Zachares, Yuke Zhu 
+## Recommended System
+* Ubuntu 18.04.6 LTS
+* python 3.6.9
+* install dependencies from requirements below
 
 ## requirements
 `pip install -r requirements.txt`
@@ -14,7 +19,7 @@ Code written by: Matthew Tan, Michelle Lee, Peter Zachares, Yuke Zhu
 cd multimodal/dataset
 ./download_data.sh
 ```
-## run training
+## run test
 
 `python mini_main.py --config configs/training_default.yaml`
 
